@@ -1,0 +1,33 @@
+{
+  "resourceType": "MedicationRequest",
+  "id": "sofia-garcia-amoxicillin-liquid",
+  "status": "active",
+  "intent": "order",
+  "medication": {
+    "concept": {
+      "text": "Amoxicillin 250 mg/5 mL oral suspension"
+    }
+  },
+  "subject": {
+    "reference": "Patient/SofiaGarcia"
+  },
+  "dosageInstruction": {
+    "text": "Take 5 mL by mouth twice daily"
+  },
+  "effectiveTimingDuration": {
+    "value": 10,
+    "unit": "days"
+  },
+  "reason": [
+    {
+      "concept": {
+        "text": "Ear infection"
+      }
+    }
+  ],
+  "note": [
+    {
+      "text": "Use a measuring spoon or oral syringe."
+      }
+  ]
+}

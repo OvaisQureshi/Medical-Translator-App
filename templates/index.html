@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Translator App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="page-shell">
+        <div class="portal-card">
+            <div class="portal-header">
+                <div>
+                    <p class="eyebrow">Patient Portal</p>
+                    <h1>Medical Translator App</h1>
+                    <p class="subtitle">
+                        Select a patient to view their prescription information.
+                    </p>
+                </div>
+            </div>
+
+            <form method="POST" class="patient-form">
+                <label for="patient_id" class="form-label">Choose a patient</label>
+
+                <select name="patient_id" id="patient_id" class="form-select" required>
+                    <option value="">-- Select a patient --</option>
+                    {% for patient_id, patient_name in patients.items() %}
+                        <option value="{{ patient_id }}">{{ patient_name }}</option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" class="primary-button">View Patient</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

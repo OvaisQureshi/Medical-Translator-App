@@ -1,0 +1,33 @@
+{
+  "resourceType": "MedicationRequest",
+  "id": "maya-johnson-hydrocortisone-cream",
+  "status": "active",
+  "intent": "order",
+  "medication": {
+    "concept": {
+      "text": "Hydrocortisone 1% topical cream"
+    }
+  },
+  "subject": {
+    "reference": "Patient/MayaJohnson"
+  },
+  "dosageInstruction": {
+    "text": "Apply a thin layer to the affected skin twice daily"
+  },
+  "effectiveTimingDuration": {
+    "value": 14,
+    "unit": "days"
+  },
+  "reason": [
+    {
+      "concept": {
+        "text": "Skin rash"
+      }
+    }
+  ],
+  "note": [
+    {
+      "text": "For external use only. Avoid contact with eyes."
+    }
+  ]
+}
