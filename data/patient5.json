@@ -1,0 +1,29 @@
+{
+  "resourceType": "MedicationRequest",
+  "id": "noah-lee-vitamin-d",
+  "status": "active",
+  "intent": "order",
+  "medication": {
+    "concept": {
+      "text": "Vitamin D3 1000 IU tablet"
+    }
+  },
+  "subject": {
+    "reference": "Patient/NoahLee"
+  },
+  "dosageInstruction": {
+    "text": "Take 1 tablet by mouth once daily"
+  },
+  "reason": [
+    {
+      "concept": {
+        "text": "Vitamin supplementation"
+      }
+    }
+  ],
+  "note": [
+    {
+      "text": "Take once daily at the same time each day."
+    }
+  ]
+}

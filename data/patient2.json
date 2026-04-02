@@ -1,0 +1,29 @@
+{
+  "resourceType": "MedicationRequest",
+  "id": "liam-patel-ibuprofen",
+  "status": "active",
+  "intent": "order",
+  "medication": {
+    "concept": {
+      "text": "Ibuprofen 200 mg tablet"
+    }
+  },
+  "subject": {
+    "reference": "Patient/LiamPatel"
+  },
+  "dosageInstruction": {
+    "text": "Take 2 tablets by mouth every 6 hours as needed for pain"
+  },
+  "reason": [
+    {
+      "concept": {
+        "text": "Pain relief"
+      }
+    }
+  ],
+  "note": [
+    {
+      "text": "Do not take more than 8 tablets in 24 hours."
+    }
+  ]
+}

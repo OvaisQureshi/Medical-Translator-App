@@ -1,0 +1,33 @@
+{
+  "resourceType": "MedicationRequest",
+  "id": "emma-thompson-amoxicillin",
+  "status": "active",
+  "intent": "order",
+  "medication": {
+    "concept": {
+      "text": "Amoxicillin 500 mg capsule"
+    }
+  },
+  "subject": {
+    "reference": "Patient/EmmaThompson"
+  },
+  "dosageInstruction": {
+    "text": "Take 1 capsule by mouth three times daily"
+  },
+  "effectiveTimingDuration": {
+    "value": 7,
+    "unit": "days"
+  },
+  "reason": [
+    {
+      "concept": {
+        "text": "Bacterial sinus infection"
+      }
+    }
+  ],
+  "note": [
+    {
+      "text": "Finish the full course even if symptoms improve."
+    }
+  ]
+}
