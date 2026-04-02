@@ -1,0 +1,4 @@
+# Safe Medication Instruction Translator
+
+## Overview
+This project converts synthetic FHIR-inspired `MedicationRequest` data into simple, patient-friendly medication instructions and translates those instructions into another language while preserving critical clinical meaning. The workflow focuses on extracting key prescription details such as medication name, dosage, units, timing, frequency, and duration, then generating clear English instructions that are easy for any patient to understand. These instructions are then passed through a translation framework with safety constraints designed to prevent the model from adding, removing, or altering important medical information. The overall goal is to improve accessibility and comprehension of medication instructions while maintaining safety and accuracy through structured data extraction, prompt guardrails, and validation checks.
