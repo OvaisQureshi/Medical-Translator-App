@@ -19,7 +19,7 @@
                     <p class="eyebrow">Patient Record</p>
                     <h1>{{ patient_name }}</h1>
                     <p class="subtitle">
-                        Raw synthetic FHIR JSON, generated English instructions, and translated output.
+                        Raw synthetic FHIR JSON, English instruction fields, translated fields, and translated patient instructions.
                     </p>
                 </div>
             </div>
@@ -57,6 +57,23 @@
                         <p class="instruction-value">{{ value }}</p>
                     </div>
                 {% endfor %}
+            </div>
+
+            <div class="info-card instructions-card">
+                <h2>{{ target_language }} Translation Fields</h2>
+
+                {% if translation_error %}
+                    <div class="instruction-row">
+                        <p class="instruction-value error-text">Translation failed: {{ translation_error }}</p>
+                    </div>
+                {% else %}
+                    {% for label, value in translated_fields.items() %}
+                        <div class="instruction-row">
+                            <p class="instruction-label">{{ label }}</p>
+                            <p class="instruction-value">{{ value }}</p>
+                        </div>
+                    {% endfor %}
+                {% endif %}
             </div>
 
             <div class="info-card instructions-card">

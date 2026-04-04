@@ -1,13 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for
 import json
 import os
-from huggingface_hub import InferenceClient
+from transformers import MarianMTModel, MarianTokenizer
 
 app = Flask(__name__)
 
 DATA_FOLDER = "data"
-
-hf_client = InferenceClient(api_key=os.environ["HF_TOKEN"])
 
 PATIENTS = {
     "patient1": "Emma Thompson",
@@ -17,7 +15,9 @@ PATIENTS = {
     "patient5": "Noah Lee"
 }
 
-SUPPORTED_LANGUAGES = ["Spanish", "Urdu", "Hindi"]
+SUPPORTED_LANGUAGES = ["Spanish", "French", "German"]
+
+translation_models = {}
 
 
 def load_patient_data(patient_id):
@@ -100,56 +100,58 @@ def build_english_instruction_sentence(fields):
     return sentence
 
 
-def translate_with_hf_llm(english_text, fields, target_language):
-    medication_name = fields.get("Medication", "")
-    dosage_text = fields.get("How to Take It", "")
-    duration_text = fields.get("Duration", "")
-    reason_text = fields.get("Reason for Use", "")
-    notes_text = fields.get("Additional Notes", "")
+def get_translation_model(target_language):
+    model_map = {
+        "Spanish": "Helsinki-NLP/opus-mt-en-es",
+        "French": "Helsinki-NLP/opus-mt-en-fr",
+        "German": "Helsinki-NLP/opus-mt-en-de"
+    }
 
-    response = hf_client.chat.completions.create(
-        model="Qwen/Qwen2.5-7B-Instruct",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a medical instruction translator. "
-                    "Translate patient-friendly medication instructions safely. "
-                    "Do not add, remove, or alter clinical meaning. "
-                    "Return only the translated instruction text. "
-                    "Do not explain anything. "
-                    "Do not use quotation marks."
-                )
-            },
-            {
-                "role": "user",
-                "content": f"""
-Translate this medication instruction into {target_language}.
+    model_name = model_map.get(target_language, "Helsinki-NLP/opus-mt-en-es")
 
-Strict rules:
-- Preserve the medication name exactly: {medication_name}
-- Preserve all numbers exactly.
-- Preserve dosage, route, timing, and duration exactly.
-- Preserve meaning exactly.
-- Use simple patient-friendly language.
-- Return only the translated instruction.
+    if model_name not in translation_models:
+        tokenizer = MarianTokenizer.from_pretrained(model_name)
+        model = MarianMTModel.from_pretrained(model_name)
 
-Locked fields:
-Medication: {medication_name}
-How to Take It: {dosage_text}
-Duration: {duration_text}
-Reason for Use: {reason_text}
-Additional Notes: {notes_text}
+        translation_models[model_name] = {
+            "tokenizer": tokenizer,
+            "model": model
+        }
 
-English instruction:
-{english_text}
-"""
-            }
-        ],
-        max_tokens=200
+    return translation_models[model_name]
+
+
+def translate_with_local_model(text_to_translate, target_language):
+    if text_to_translate == "Not provided":
+        return text_to_translate
+
+    model_bundle = get_translation_model(target_language)
+    tokenizer = model_bundle["tokenizer"]
+    model = model_bundle["model"]
+
+    inputs = tokenizer(
+        [text_to_translate],
+        return_tensors="pt",
+        padding=True,
+        truncation=True
     )
 
-    return response.choices[0].message.content.strip()
+    translated_tokens = model.generate(**inputs)
+    translated_text = tokenizer.decode(translated_tokens[0], skip_special_tokens=True)
+
+    return translated_text
+
+
+def translate_instruction_fields(fields, target_language):
+    translated_fields = {}
+
+    for label, value in fields.items():
+        if value == "Not provided":
+            translated_fields[label] = value
+        else:
+            translated_fields[label] = translate_with_local_model(value, target_language)
+
+    return translated_fields
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -176,14 +178,20 @@ def patient_page(patient_id):
         target_language = "Spanish"
 
     try:
-        translated_sentence = translate_with_hf_llm(
+        translated_sentence = translate_with_local_model(
             english_sentence,
+            target_language
+        )
+
+        translated_fields = translate_instruction_fields(
             english_instructions,
             target_language
         )
+
         translation_error = None
     except Exception as e:
         translated_sentence = None
+        translated_fields = {}
         translation_error = str(e)
 
     return render_template(
@@ -192,6 +200,7 @@ def patient_page(patient_id):
         patient_name=PATIENTS.get(patient_id, "Unknown Patient"),
         patient_data=patient_data,
         english_instructions=english_instructions,
+        translated_fields=translated_fields,
         english_sentence=english_sentence,
         translated_sentence=translated_sentence,
         target_language=target_language,
