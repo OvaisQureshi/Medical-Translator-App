@@ -19,9 +19,28 @@
                     <p class="eyebrow">Patient Record</p>
                     <h1>{{ patient_name }}</h1>
                     <p class="subtitle">
-                        Raw synthetic FHIR JSON and generated English instructions.
+                        Raw synthetic FHIR JSON, generated English instructions, and translated output.
                     </p>
                 </div>
+            </div>
+
+            <div class="info-card">
+                <h2>Translation Settings</h2>
+                <form method="GET" class="translation-form">
+                    <label for="lang" class="form-label">Choose translation language</label>
+
+                    <div class="translation-controls">
+                        <select name="lang" id="lang" class="form-select" required>
+                            {% for language in supported_languages %}
+                                <option value="{{ language }}" {% if language == target_language %}selected{% endif %}>
+                                    {{ language }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <button type="submit" class="primary-button">Translate</button>
+                    </div>
+                </form>
             </div>
 
             <div class="info-card">
@@ -30,7 +49,7 @@
             </div>
 
             <div class="info-card instructions-card">
-                <h2>English Instructions</h2>
+                <h2>English Instruction Fields</h2>
 
                 {% for label, value in english_instructions.items() %}
                     <div class="instruction-row">
@@ -38,6 +57,31 @@
                         <p class="instruction-value">{{ value }}</p>
                     </div>
                 {% endfor %}
+            </div>
+
+            <div class="info-card instructions-card">
+                <h2>English Full Instruction</h2>
+                <div class="instruction-row">
+                    <p class="instruction-value">{{ english_sentence }}</p>
+                </div>
+            </div>
+
+            <div class="info-card instructions-card">
+                <h2>{{ target_language }} Translation</h2>
+
+                {% if translation_error %}
+                    <div class="instruction-row">
+                        <p class="instruction-value error-text">Translation failed: {{ translation_error }}</p>
+                    </div>
+                {% elif translated_sentence %}
+                    <div class="instruction-row">
+                        <p class="instruction-value translated-text">{{ translated_sentence }}</p>
+                    </div>
+                {% else %}
+                    <div class="instruction-row">
+                        <p class="instruction-value">No translation available.</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
