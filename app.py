@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 import json
 import os
-from transformers import MarianMTModel, MarianTokenizer
+import requests
 
 app = Flask(__name__)
 
@@ -17,7 +17,18 @@ PATIENTS = {
 
 SUPPORTED_LANGUAGES = ["Spanish", "French", "German"]
 
-translation_models = {}
+LANGUAGE_CODES = {
+    "Spanish": "es",
+    "French": "fr",
+    "German": "de"
+}
+
+AZURE_TRANSLATOR_KEY = os.environ.get("AZURE_TRANSLATOR_KEY")
+AZURE_TRANSLATOR_REGION = os.environ.get("AZURE_TRANSLATOR_REGION")
+AZURE_TRANSLATOR_ENDPOINT = os.environ.get(
+    "AZURE_TRANSLATOR_ENDPOINT",
+    "https://api.cognitive.microsofttranslator.com"
+)
 
 
 def load_patient_data(patient_id):
@@ -100,56 +111,106 @@ def build_english_instruction_sentence(fields):
     return sentence
 
 
-def get_translation_model(target_language):
-    model_map = {
-        "Spanish": "Helsinki-NLP/opus-mt-en-es",
-        "French": "Helsinki-NLP/opus-mt-en-fr",
-        "German": "Helsinki-NLP/opus-mt-en-de"
-    }
+def get_protected_terms(fields):
+    medication_name = fields.get("Medication", "")
+    how_to_take = fields.get("How to Take It", "")
+    duration = fields.get("Duration", "")
 
-    model_name = model_map.get(target_language, "Helsinki-NLP/opus-mt-en-es")
+    protected_terms = []
 
-    if model_name not in translation_models:
-        tokenizer = MarianTokenizer.from_pretrained(model_name)
-        model = MarianMTModel.from_pretrained(model_name)
+    if medication_name and medication_name != "Not provided":
+        protected_terms.append(medication_name)
 
-        translation_models[model_name] = {
-            "tokenizer": tokenizer,
-            "model": model
-        }
+    # Optional: protect full duration string like "7 days"
+    if duration and duration != "Not provided":
+        protected_terms.append(duration)
 
-    return translation_models[model_name]
+    # You can add more protected terms later if needed.
+    return protected_terms
 
 
-def translate_with_local_model(text_to_translate, target_language):
+def protect_terms(text, protected_terms):
+    protected_map = {}
+    protected_text = text
+
+    for i, term in enumerate(protected_terms):
+        placeholder = f"__PROTECTED_{i}__"
+        if term and term in protected_text:
+            protected_text = protected_text.replace(term, placeholder)
+            protected_map[placeholder] = term
+
+    return protected_text, protected_map
+
+
+def restore_terms(text, protected_map):
+    restored_text = text
+
+    for placeholder, original_term in protected_map.items():
+        restored_text = restored_text.replace(placeholder, original_term)
+
+    return restored_text
+
+
+def translate_with_microsoft(text_to_translate, target_language, protected_terms=None):
     if text_to_translate == "Not provided":
         return text_to_translate
 
-    model_bundle = get_translation_model(target_language)
-    tokenizer = model_bundle["tokenizer"]
-    model = model_bundle["model"]
+    if not AZURE_TRANSLATOR_KEY:
+        raise ValueError("Missing AZURE_TRANSLATOR_KEY environment variable.")
 
-    inputs = tokenizer(
-        [text_to_translate],
-        return_tensors="pt",
-        padding=True,
-        truncation=True
-    )
+    language_code = LANGUAGE_CODES.get(target_language)
+    if not language_code:
+        raise ValueError(f"Unsupported language: {target_language}")
 
-    translated_tokens = model.generate(**inputs)
-    translated_text = tokenizer.decode(translated_tokens[0], skip_special_tokens=True)
+    protected_terms = protected_terms or []
+    protected_text, protected_map = protect_terms(text_to_translate, protected_terms)
+
+    url = f"{AZURE_TRANSLATOR_ENDPOINT}/translate"
+    params = {
+        "api-version": "3.0",
+        "from": "en",
+        "to": language_code
+    }
+
+    headers = {
+        "Ocp-Apim-Subscription-Key": AZURE_TRANSLATOR_KEY,
+        "Content-Type": "application/json; charset=UTF-8"
+    }
+
+    if AZURE_TRANSLATOR_REGION:
+        headers["Ocp-Apim-Subscription-Region"] = AZURE_TRANSLATOR_REGION
+
+    body = [
+        {"Text": protected_text}
+    ]
+
+    response = requests.post(url, params=params, headers=headers, json=body, timeout=20)
+    response.raise_for_status()
+
+    response_json = response.json()
+
+    translated_text = response_json[0]["translations"][0]["text"]
+    translated_text = restore_terms(translated_text, protected_map)
 
     return translated_text
 
 
 def translate_instruction_fields(fields, target_language):
     translated_fields = {}
+    protected_terms = get_protected_terms(fields)
 
     for label, value in fields.items():
         if value == "Not provided":
             translated_fields[label] = value
+        elif label in {"Medication", "Duration"}:
+            # Keep key medical details exactly as-is.
+            translated_fields[label] = value
         else:
-            translated_fields[label] = translate_with_local_model(value, target_language)
+            translated_fields[label] = translate_with_microsoft(
+                value,
+                target_language,
+                protected_terms=protected_terms
+            )
 
     return translated_fields
 
@@ -178,9 +239,12 @@ def patient_page(patient_id):
         target_language = "Spanish"
 
     try:
-        translated_sentence = translate_with_local_model(
+        protected_terms = get_protected_terms(english_instructions)
+
+        translated_sentence = translate_with_microsoft(
             english_sentence,
-            target_language
+            target_language,
+            protected_terms=protected_terms
         )
 
         translated_fields = translate_instruction_fields(
@@ -210,4 +274,5 @@ def patient_page(patient_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5001))
+    app.run(host="0.0.0.0", port=port, debug=True)
