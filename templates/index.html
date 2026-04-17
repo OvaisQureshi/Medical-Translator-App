@@ -14,22 +14,23 @@
                     <p class="eyebrow">Patient Portal</p>
                     <h1>Medical Translator App</h1>
                     <p class="subtitle">
-                        Select a patient to view their prescription information.
+                        Log in to view your prescription information.
                     </p>
                 </div>
             </div>
 
+            {% if login_error %}
+                <div class="login-error">{{ login_error }}</div>
+            {% endif %}
+
             <form method="POST" class="patient-form">
-                <label for="patient_id" class="form-label">Choose a patient</label>
+                <label for="username" class="form-label">Username</label>
+                <input type="text" name="username" id="username" class="form-input" placeholder="Enter your first name" required>
 
-                <select name="patient_id" id="patient_id" class="form-select" required>
-                    <option value="">-- Select a patient --</option>
-                    {% for patient_id, patient_name in patients.items() %}
-                        <option value="{{ patient_id }}">{{ patient_name }}</option>
-                    {% endfor %}
-                </select>
+                <label for="password" class="form-label">Password</label>
+                <input type="password" name="password" id="password" class="form-input" placeholder="Enter your last name" required>
 
-                <button type="submit" class="primary-button">View Patient</button>
+                <button type="submit" class="primary-button">Log In</button>
             </form>
         </div>
     </div>
