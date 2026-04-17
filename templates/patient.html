@@ -10,7 +10,7 @@
     <div class="page-shell">
         <div class="portal-card">
             <div class="top-row">
-                <a href="{{ url_for('home') }}" class="back-link">← Back to patient selection</a>
+                <a href="{{ url_for('home') }}" class="back-link">← Log out</a>
                 <span class="status-pill">MedicationRequest</span>
             </div>
 
@@ -32,7 +32,7 @@
                     <div class="translation-controls">
                         <select name="lang" id="lang" class="form-select" required>
                             {% for language in supported_languages %}
-                                <option value="{{ language }}" {% if language == target_language %}selected{% endif %}>
+                                <option value="{{ language }}" {% if target_language and language == target_language %}selected{% endif %}>
                                     {{ language }}
                                 </option>
                             {% endfor %}
@@ -66,6 +66,7 @@
                 </div>
             </div>
 
+            {% if target_language %}
             <div class="info-card instructions-card">
                 <h2>{{ target_language }} Translation</h2>
 
@@ -83,6 +84,7 @@
                     </div>
                 {% endif %}
             </div>
+            {% endif %}
         </div>
     </div>
 </body>

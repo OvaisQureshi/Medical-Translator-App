@@ -15,6 +15,15 @@ PATIENTS = {
     "patient5": "Noah Lee"
 }
 
+# Login credentials: username (first name, lowercase) -> (patient_id, password (last name, lowercase))
+PATIENT_CREDENTIALS = {
+    "emma": {"patient_id": "patient1", "password": "thompson"},
+    "liam": {"patient_id": "patient2", "password": "patel"},
+    "sofia": {"patient_id": "patient3", "password": "garcia"},
+    "maya": {"patient_id": "patient4", "password": "johnson"},
+    "noah": {"patient_id": "patient5", "password": "lee"}
+}
+
 SUPPORTED_LANGUAGES = ["Spanish", "French", "German"]
 
 LANGUAGE_CODES = {
@@ -217,11 +226,20 @@ def translate_instruction_fields(fields, target_language):
 
 @app.route("/", methods=["GET", "POST"])
 def home():
-    if request.method == "POST":
-        patient_id = request.form.get("patient_id")
-        return redirect(url_for("patient_page", patient_id=patient_id))
+    login_error = None
 
-    return render_template("index.html", patients=PATIENTS)
+    if request.method == "POST":
+        username = request.form.get("username", "").strip().lower()
+        password = request.form.get("password", "").strip().lower()
+
+        user = PATIENT_CREDENTIALS.get(username)
+
+        if user and user["password"] == password:
+            return redirect(url_for("patient_page", patient_id=user["patient_id"]))
+        else:
+            login_error = "Invalid username or password. Please try again."
+
+    return render_template("index.html", login_error=login_error)
 
 
 @app.route("/patient/<patient_id>")
@@ -234,29 +252,33 @@ def patient_page(patient_id):
     english_instructions = extract_medication_fields(patient_data)
     english_sentence = build_english_instruction_sentence(english_instructions)
 
-    target_language = request.args.get("lang", "Spanish")
-    if target_language not in SUPPORTED_LANGUAGES:
-        target_language = "Spanish"
+    # Only translate when user explicitly clicks the Translate button (lang param present)
+    target_language = request.args.get("lang")
+    translated_sentence = None
+    translated_fields = {}
+    translation_error = None
 
-    try:
-        protected_terms = get_protected_terms(english_instructions)
+    if target_language:
+        if target_language not in SUPPORTED_LANGUAGES:
+            target_language = "Spanish"
 
-        translated_sentence = translate_with_microsoft(
-            english_sentence,
-            target_language,
-            protected_terms=protected_terms
-        )
+        try:
+            protected_terms = get_protected_terms(english_instructions)
 
-        translated_fields = translate_instruction_fields(
-            english_instructions,
-            target_language
-        )
+            translated_sentence = translate_with_microsoft(
+                english_sentence,
+                target_language,
+                protected_terms=protected_terms
+            )
 
-        translation_error = None
-    except Exception as e:
-        translated_sentence = None
-        translated_fields = {}
-        translation_error = str(e)
+            translated_fields = translate_instruction_fields(
+                english_instructions,
+                target_language
+            )
+        except Exception as e:
+            translated_sentence = None
+            translated_fields = {}
+            translation_error = str(e)
 
     return render_template(
         "patient.html",
